@@ -8,6 +8,8 @@ The code wraps the implementation of [AppAuth-JS](https://github.com/openid/AppA
 This is our first go at a Open Source repo, so this is very much learning by doing.
 For now, we'll rather refer to the implementation as "the code" instead of "the library" since is hasn't been published as a npm package just yet.
 
+**If you have experience with managing an Open Source code base with public pull requests - please reach out!**
+
 ## Content
 The repo contains two folders:
 - src: Contains the implementation for Ionic
