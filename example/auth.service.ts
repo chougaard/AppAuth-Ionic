@@ -19,8 +19,6 @@ import {
 import { IonicAuthorizationRequestHandler, AUTHORIZATION_RESPONSE_KEY } from '../src/ionicAuthorizationRequestHandler';
 //import { AppTokenResponse } from '../app-auth/AppTokenReponse';
 
-
-// const OpenIDConnectURL = "http://192.168.1.86:5000";
 const OpenIDConnectURL = "https://<URL FOR SERVER>";
 
 
