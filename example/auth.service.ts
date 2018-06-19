@@ -160,8 +160,11 @@ export class AuthService {
     }
 
     public async completeAuthorization(url: string) {
-        await this.storageBackend.setItem(AUTHORIZATION_RESPONSE_KEY, url)
-        this.authorizationHandler.completeAuthorizationRequestIfPossible();
+        if ((url).indexOf(RedirectUri) === 0){
+            this.authorizationHandler.closeBrowserWindow();
+            await this.storageBackend.setItem(AUTHORIZATION_RESPONSE_KEY, url);
+            this.authorizationHandler.completeAuthorizationRequestIfPossible();
+        }  
     }
 
     private async requestAccessToken() {

@@ -15,6 +15,7 @@ import {
 
 
 import { SafariViewController, SafariViewControllerOptions } from "@ionic-native/safari-view-controller";
+import { InAppBrowser, InAppBrowserOptions, InAppBrowserObject } from '@ionic-native/in-app-browser';
 
 
 /** key for authorization request. */
@@ -35,7 +36,7 @@ export const AUTHORIZATION_RESPONSE_KEY = "auth_repsonse";
 
 export class IonicAuthorizationRequestHandler extends AuthorizationRequestHandler {
 
-    private safariViewController: SafariViewController;
+    private inAppLogin: InAppBrowserObject;
 
     constructor(
         // use the provided storage backend
@@ -44,12 +45,11 @@ export class IonicAuthorizationRequestHandler extends AuthorizationRequestHandle
         public storageBackend: StorageBackend = new LocalStorageBackend(),
         utils = new BasicQueryStringUtils(),
         public locationLike: LocationLike = window.location,
-        generateRandom = cryptoGenerateRandom) {
+        generateRandom = cryptoGenerateRandom,
+        private inAppBrowser: InAppBrowser = new InAppBrowser(),
+        private safariViewController: SafariViewController = new SafariViewController()) {
 
         super(utils, generateRandom);
-
-        this.safariViewController = new SafariViewController();
-
     }
 
     public async performAuthorizationRequest(configuration: AuthorizationServiceConfiguration, request: AuthorizationRequest): Promise<any> {
@@ -78,10 +78,26 @@ export class IonicAuthorizationRequestHandler extends AuthorizationRequestHandle
             }
             await this.safariViewController.show(options).toPromise();
         } else {
-            //TODO: Fallback to In App Browser
+            let options: InAppBrowserOptions = {
+                location: 'no',
+                zoom: 'no',
+                clearcache: 'yes',
+                clearsessioncache: 'yes'
+            }
+
+            this.inAppLogin = this.inAppBrowser.create(url, '_self', options);
+
+            await this.inAppLogin.show();
         }
     }
 
+    public async closeBrowserWindow(){
+        if(await this.safariViewController.isAvailable()){
+            await this.safariViewController.hide();             
+        }  else{
+            await this.inAppLogin.close(); 
+        }
+    }
 
     protected async completeAuthorizationRequest(): Promise<AuthorizationRequestResponse> {
 
