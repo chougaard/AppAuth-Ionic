@@ -30,7 +30,7 @@ The code is a wrapper for the openid/AppAuth-JS implementation of OpenID Connect
 - [ ] Improve documentation
 
 **For code:**
-- [ ] Fallback to InAppBrowser when ChromeTabs or SafariViewController is not available
+- [X] Fallback to InAppBrowser when ChromeTabs or SafariViewController is not available
 
 
 ## About us
