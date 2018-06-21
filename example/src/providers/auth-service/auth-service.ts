@@ -1,8 +1,9 @@
-import { HttpClient } from '@angular/common/http';
+import { EndSessionRequest } from './app-auth/endSessionRequest';
+import { IonicEndSessionHandler } from './app-auth/ionicEndSessionRequestHandler';
 import { Injectable } from '@angular/core';
-
-import { IonicAuthorizationServiceConfiguration } from '../app-auth/IonicAuthorizationServiceConfiguration';
-import { AngularRequestor } from '../app-auth/angularRequestor';
+import { IonicAuthorizationServiceConfiguration } from './app-auth/IonicAuthorizationServiceConfiguration';
+import { AngularRequestor } from './app-auth/angularRequestor';
+import { IonicAuthorizationRequestHandler, AUTHORIZATION_RESPONSE_KEY } from './app-auth/ionicAuthorizationRequestHandler';
 import {
     AuthorizationNotifier,
     AuthorizationRequest,
@@ -15,17 +16,16 @@ import {
     AuthorizationServiceConfiguration,
     TokenResponse
 } from '@openid/appauth';
+import { IonicAppBrowserProvider } from '../auth-service/app-auth/ionicAppBrowser';
 
-import { IonicAuthorizationRequestHandler, AUTHORIZATION_RESPONSE_KEY } from '../src/ionicAuthorizationRequestHandler';
 //import { AppTokenResponse } from '../app-auth/AppTokenReponse';
-
 const OpenIDConnectURL = "https://<URL FOR SERVER>";
-
-
 const ClientId = "<CLIENT ID>";
 const ClientSecret = "<SECRET>";
 const RedirectUri = "<CUSTOM URL TYPE>://<CUSTOM URL PATH>";
 //URL Example: com.my.app://token
+const EndSessionRedirectUri = "<CUSTOM URL TYPE>://<CUSTOM URL PATH";
+//this should be different from redirectURI
 
 //CONST values (magic strings):
 const TOKEN_RESPONSE_KEY = "token_response";
@@ -34,31 +34,31 @@ const AUTH_CODE_KEY = "authorization_code"
 const nowInSeconds = () => Math.round(new Date().getTime() / 1000);
 
 @Injectable()
-export class AuthService {
-
+export class AuthServiceProvider {
+    
     authCompletedReject: (reason?: any) => void;
     authCompletedResolve: (value?: boolean | PromiseLike<boolean>) => void;
     public authCompletedTask: Promise<boolean>;
 
     private authFinishedCallback: Function;
+    private authLogOutCallback: Function;
     private discoveryTask: Promise<AuthorizationServiceConfiguration>;
-
     private tokenHandler: BaseTokenRequestHandler;
     private storageBackend: StorageBackend;
-
     private tokenResponse: TokenResponse;
 
     private code: string;
 
     private authorizationHandler: IonicAuthorizationRequestHandler;
+    private endSessionHandler : IonicEndSessionHandler;
     private notifier: AuthorizationNotifier;
 
     private configuration: IonicAuthorizationServiceConfiguration;
+    
 
 
-    constructor(private requestor: AngularRequestor) {
-        this.storageBackend = new LocalStorageBackend()
-
+    constructor(private requestor: AngularRequestor, private ionicBrowserView : IonicAppBrowserProvider) {
+        this.storageBackend = new LocalStorageBackend();
         this.fetchDiscovery(requestor);
 
         this.init();
@@ -67,7 +67,8 @@ export class AuthService {
     private init() {
         this.notifier = new AuthorizationNotifier();
         // uses a redirect flow for authorization. This is part of the hybrid flow
-        this.authorizationHandler = new IonicAuthorizationRequestHandler();
+        this.authorizationHandler = new IonicAuthorizationRequestHandler(this.ionicBrowserView);
+        this.endSessionHandler = new IonicEndSessionHandler(this.ionicBrowserView);
 
         // set notifier to deliver responses
         this.authorizationHandler.setAuthorizationNotifier(this.notifier);
@@ -103,10 +104,12 @@ export class AuthService {
         this.tryLoadTokenResponseAsync();
 
         try {
-
             if (this.tokenResponse && this.tokenResponse.isValid()) {
                 this.requestWithRefreshToken();
+                //called auth finished callback again to push back to main page 
+                this.authFinishedCallback();
             } else {
+       
                 this.requestAuthorizationToken();
             }
         } catch (error) {
@@ -114,15 +117,32 @@ export class AuthService {
         }
     }
 
-    public async startupAsync(callback: Function) {
-
-        this.authFinishedCallback = callback;
-
+    public async startupAsync(signInCallback: Function, signOutCallback: Function) {
+      
+        this.authFinishedCallback = signInCallback;
+        this.authLogOutCallback = signOutCallback;
         await this.tryLoadTokenResponseAsync();
 
-        (<any>window).handleOpenURL = (url) => {
-            this.completeAuthorization(url);
-        };
+    }
+
+    public async AuthorizationCallback(url: string){
+
+        if ((url).indexOf(RedirectUri) === 0){
+
+            this.ionicBrowserView.CloseWindow();
+            await this.storageBackend.setItem(AUTHORIZATION_RESPONSE_KEY, url);
+            this.authorizationHandler.completeAuthorizationRequestIfPossible();
+
+        }
+        else if((url).indexOf(EndSessionRedirectUri) === 0) {
+
+            this.ionicBrowserView.CloseWindow();
+            await this.storageBackend.clear();  
+            await this.resetAuthCompletedPromise();
+            delete this.tokenResponse;
+
+            this.authLogOutCallback();
+        }
     }
 
     public async waitAuthenticated() {
@@ -140,7 +160,16 @@ export class AuthService {
         }
     }
 
+    public async signout(){
+        await this.discoveryTask;
+
+        let id_token = this.tokenResponse.idToken;
+        let request = new EndSessionRequest(id_token, EndSessionRedirectUri);
+        this.endSessionHandler.performEndSessionRequest(this.configuration, request);
+    }
+
     private async requestAuthorizationToken() {
+
         this.resetAuthCompletedPromise();
         await this.discoveryTask;
 
@@ -153,18 +182,10 @@ export class AuthService {
             undefined, /* state */
             {
                 'access_type': 'offline',
-                "nonce": this.generateNonce()
+                'nonce': this.generateNonce()
             });
 
         this.authorizationHandler.performAuthorizationRequest(this.configuration, request);
-    }
-
-    public async completeAuthorization(url: string) {
-        if ((url).indexOf(RedirectUri) === 0){
-            this.authorizationHandler.closeBrowserWindow();
-            await this.storageBackend.setItem(AUTHORIZATION_RESPONSE_KEY, url);
-            this.authorizationHandler.completeAuthorizationRequestIfPossible();
-        }  
     }
 
     private async requestAccessToken() {
@@ -253,6 +274,7 @@ export class AuthService {
 
             let response = await this.discoveryTask;
             this.configuration = response;
+
         } catch (error) {
             //If discovery doesn't work, this is the place to set the endpoints manually
             throw error;
@@ -277,5 +299,10 @@ export class AuthService {
         }
 
         return this.tokenResponse;
+    }
+
+    //test class only, dont have in actual app
+    public getAccessTokenJson() : string{
+      return JSON.stringify(this.tokenResponse);
     }
 }

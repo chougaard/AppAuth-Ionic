@@ -7,15 +7,11 @@ import {
     LocalStorageBackend,
     BasicQueryStringUtils,
     LocationLike,
-    RandomGenerator,
     cryptoGenerateRandom,
     AuthorizationResponse,
     AuthorizationError
 } from "@openid/appauth";
-
-
-import { SafariViewController, SafariViewControllerOptions } from "@ionic-native/safari-view-controller";
-import { InAppBrowser, InAppBrowserOptions, InAppBrowserObject } from '@ionic-native/in-app-browser';
+import { IonicAppBrowserProvider } from '../../auth-service/app-auth/ionicAppBrowser';
 
 
 /** key for authorization request. */
@@ -32,28 +28,26 @@ const authorizationServiceConfigurationKey =
 
 /** key in local storage which represents the current authorization request. */
 const AUTHORIZATION_REQUEST_HANDLE_KEY = 'appauth_current_authorization_request';
-export const AUTHORIZATION_RESPONSE_KEY = "auth_repsonse";
+export const AUTHORIZATION_RESPONSE_KEY = "auth_response";
 
 export class IonicAuthorizationRequestHandler extends AuthorizationRequestHandler {
 
-    private inAppLogin: InAppBrowserObject;
-
-    constructor(
+    constructor(  
         // use the provided storage backend
         // or initialize local storage with the default storage backend which
         // uses window.localStorage
+        private ionicBrowserView: IonicAppBrowserProvider,
         public storageBackend: StorageBackend = new LocalStorageBackend(),
         utils = new BasicQueryStringUtils(),
         public locationLike: LocationLike = window.location,
         generateRandom = cryptoGenerateRandom,
-        private inAppBrowser: InAppBrowser = new InAppBrowser(),
-        private safariViewController: SafariViewController = new SafariViewController()) {
+        ) {
 
         super(utils, generateRandom);
     }
 
     public async performAuthorizationRequest(configuration: AuthorizationServiceConfiguration, request: AuthorizationRequest): Promise<any> {
-        //this.safariViewController.warmUp();
+       // this.safariViewController.warmUp();
 
         let handle = this.generateRandom();
 
@@ -69,34 +63,7 @@ export class IonicAuthorizationRequestHandler extends AuthorizationRequestHandle
         //Build the request
         let url = this.buildRequestUrl(configuration, request);
 
-        if (await this.safariViewController.isAvailable()) {
-
-            let options: SafariViewControllerOptions = {
-                url: url,
-                enterReaderModeIfAvailable: true,
-                
-            }
-            await this.safariViewController.show(options).toPromise();
-        } else {
-            let options: InAppBrowserOptions = {
-                location: 'no',
-                zoom: 'no',
-                clearcache: 'yes',
-                clearsessioncache: 'yes'
-            }
-
-            this.inAppLogin = this.inAppBrowser.create(url, '_self', options);
-
-            await this.inAppLogin.show();
-        }
-    }
-
-    public async closeBrowserWindow(){
-        if(await this.safariViewController.isAvailable()){
-            await this.safariViewController.hide();             
-        }  else{
-            await this.inAppLogin.close(); 
-        }
+        this.ionicBrowserView.ShowWindow(url);
     }
 
     protected async completeAuthorizationRequest(): Promise<AuthorizationRequestResponse> {
@@ -110,7 +77,7 @@ export class IonicAuthorizationRequestHandler extends AuthorizationRequestHandle
 
         let authRequestKey = await this.storageBackend.getItem(authorizationRequestKey(handle))
         let json = await JSON.parse(authRequestKey);
-
+        
         let request = await AuthorizationRequest.fromJson(json);
 
         let response = await this.storageBackend.getItem(AUTHORIZATION_RESPONSE_KEY);
