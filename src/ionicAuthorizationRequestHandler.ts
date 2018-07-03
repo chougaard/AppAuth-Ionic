@@ -13,6 +13,7 @@ import {
 } from "@openid/appauth";
 import { IonicAppBrowserProvider } from '../../auth-service/app-auth/ionicAppBrowser';
 
+import { InAppBrowser, InAppBrowserOptions, InAppBrowserObject } from '@ionic-native/in-app-browser';
 
 /** key for authorization request. */
 const authorizationRequestKey =
@@ -41,7 +42,8 @@ export class IonicAuthorizationRequestHandler extends AuthorizationRequestHandle
         utils = new BasicQueryStringUtils(),
         public locationLike: LocationLike = window.location,
         generateRandom = cryptoGenerateRandom,
-        ) {
+        private inAppBrowser: InAppBrowser = new InAppBrowser(),
+        private safariViewController: SafariViewController = new SafariViewController()) {
 
         super(utils, generateRandom);
     }
@@ -64,8 +66,25 @@ export class IonicAuthorizationRequestHandler extends AuthorizationRequestHandle
         let url = this.buildRequestUrl(configuration, request);
 
         this.ionicBrowserView.ShowWindow(url);
+            let options: InAppBrowserOptions = {
+                location: 'no',
+                zoom: 'no',
+                clearcache: 'yes',
+                clearsessioncache: 'yes'
+            }
+
+            this.inAppLogin = this.inAppBrowser.create(url, '_self', options);
+
+            await this.inAppLogin.show();
     }
 
+    public async closeBrowserWindow(){
+        if(await this.safariViewController.isAvailable()){
+            await this.safariViewController.hide();             
+        }  else{
+            await this.inAppLogin.close(); 
+        }
+    }
     protected async completeAuthorizationRequest(): Promise<AuthorizationRequestResponse> {
 
         let handle = await this.storageBackend.getItem(AUTHORIZATION_REQUEST_HANDLE_KEY);

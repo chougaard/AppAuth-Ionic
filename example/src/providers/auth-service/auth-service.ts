@@ -188,6 +188,11 @@ export class AuthServiceProvider {
         this.authorizationHandler.performAuthorizationRequest(this.configuration, request);
     }
 
+        if ((url).indexOf(RedirectUri) === 0){
+            this.authorizationHandler.closeBrowserWindow();
+            await this.storageBackend.setItem(AUTHORIZATION_RESPONSE_KEY, url);
+            this.authorizationHandler.completeAuthorizationRequestIfPossible();
+        }  
     private async requestAccessToken() {
         await this.discoveryTask;
 
