@@ -7,14 +7,11 @@ import {
     LocalStorageBackend,
     BasicQueryStringUtils,
     LocationLike,
-    RandomGenerator,
     cryptoGenerateRandom,
     AuthorizationResponse,
     AuthorizationError
 } from "@openid/appauth";
-
-
-import { SafariViewController, SafariViewControllerOptions } from "@ionic-native/safari-view-controller";
+import { IonicAppBrowserProvider } from '../../auth-service/app-auth/ionicAppBrowser';
 
 
 /** key for authorization request. */
@@ -31,29 +28,26 @@ const authorizationServiceConfigurationKey =
 
 /** key in local storage which represents the current authorization request. */
 const AUTHORIZATION_REQUEST_HANDLE_KEY = 'appauth_current_authorization_request';
-export const AUTHORIZATION_RESPONSE_KEY = "auth_repsonse";
+export const AUTHORIZATION_RESPONSE_KEY = "auth_response";
 
 export class IonicAuthorizationRequestHandler extends AuthorizationRequestHandler {
 
-    private safariViewController: SafariViewController;
-
-    constructor(
+    constructor(  
         // use the provided storage backend
         // or initialize local storage with the default storage backend which
         // uses window.localStorage
+        private ionicBrowserView: IonicAppBrowserProvider,
         public storageBackend: StorageBackend = new LocalStorageBackend(),
         utils = new BasicQueryStringUtils(),
         public locationLike: LocationLike = window.location,
-        generateRandom = cryptoGenerateRandom) {
+        generateRandom = cryptoGenerateRandom,
+        ) {
 
         super(utils, generateRandom);
-
-        this.safariViewController = new SafariViewController();
-
     }
 
     public async performAuthorizationRequest(configuration: AuthorizationServiceConfiguration, request: AuthorizationRequest): Promise<any> {
-        //this.safariViewController.warmUp();
+       // this.safariViewController.warmUp();
 
         let handle = this.generateRandom();
 
@@ -69,19 +63,8 @@ export class IonicAuthorizationRequestHandler extends AuthorizationRequestHandle
         //Build the request
         let url = this.buildRequestUrl(configuration, request);
 
-        if (await this.safariViewController.isAvailable()) {
-
-            let options: SafariViewControllerOptions = {
-                url: url,
-                enterReaderModeIfAvailable: true,
-                
-            }
-            await this.safariViewController.show(options).toPromise();
-        } else {
-            //TODO: Fallback to In App Browser
-        }
+        this.ionicBrowserView.ShowWindow(url);
     }
-
 
     protected async completeAuthorizationRequest(): Promise<AuthorizationRequestResponse> {
 
@@ -94,7 +77,7 @@ export class IonicAuthorizationRequestHandler extends AuthorizationRequestHandle
 
         let authRequestKey = await this.storageBackend.getItem(authorizationRequestKey(handle))
         let json = await JSON.parse(authRequestKey);
-
+        
         let request = await AuthorizationRequest.fromJson(json);
 
         let response = await this.storageBackend.getItem(AUTHORIZATION_RESPONSE_KEY);
