@@ -17,15 +17,16 @@ The repo contains two folders:
 
 
 ## Features
-The implementation supports the OpenID Connect Hybrid Flow to be used mainly by Smartphone Apps.
+The implementation supports the OpenID Connect Authorization Code Flow to be used mainly by Smartphone Apps.
 The code is a wrapper for the openid/AppAuth-JS implementation of OpenID Connect. The code supports both signin and Refresh Tokens.
+The code supports PKCE. 
 
 
 ### Todo
 
 **For repo**:
 - [ ] Ensure that package.json contains the correct dependencies
-- [ ] Create a working sample app
+- [X] Create a working sample app
 - [ ] Publish implementation as a public npm package
 - [ ] Improve documentation
 

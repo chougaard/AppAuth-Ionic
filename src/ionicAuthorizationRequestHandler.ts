@@ -33,7 +33,7 @@ export const AUTHORIZATION_RESPONSE_KEY = "auth_response";
 
 export class IonicAuthorizationRequestHandler extends AuthorizationRequestHandler {
 
-    constructor(  
+    constructor(
         // use the provided storage backend
         // or initialize local storage with the default storage backend which
         // uses window.localStorage
@@ -49,7 +49,7 @@ export class IonicAuthorizationRequestHandler extends AuthorizationRequestHandle
     }
 
     public async performAuthorizationRequest(configuration: AuthorizationServiceConfiguration, request: AuthorizationRequest): Promise<any> {
-       // this.safariViewController.warmUp();
+        // this.safariViewController.warmUp();
 
         let handle = this.generateRandom();
 
@@ -66,23 +66,23 @@ export class IonicAuthorizationRequestHandler extends AuthorizationRequestHandle
         let url = this.buildRequestUrl(configuration, request);
 
         this.ionicBrowserView.ShowWindow(url);
-            let options: InAppBrowserOptions = {
-                location: 'no',
-                zoom: 'no',
-                clearcache: 'yes',
-                clearsessioncache: 'yes'
-            }
+        let options: InAppBrowserOptions = {
+            location: 'no',
+            zoom: 'no',
+            clearcache: 'yes',
+            clearsessioncache: 'yes'
+        }
 
-            this.inAppLogin = this.inAppBrowser.create(url, '_self', options);
+        this.inAppLogin = this.inAppBrowser.create(url, '_self', options);
 
-            await this.inAppLogin.show();
+        await this.inAppLogin.show();
     }
 
-    public async closeBrowserWindow(){
-        if(await this.safariViewController.isAvailable()){
-            await this.safariViewController.hide();             
-        }  else{
-            await this.inAppLogin.close(); 
+    public async closeBrowserWindow() {
+        if (await this.safariViewController.isAvailable()) {
+            await this.safariViewController.hide();
+        } else {
+            await this.inAppLogin.close();
         }
     }
     protected async completeAuthorizationRequest(): Promise<AuthorizationRequestResponse> {
@@ -96,11 +96,11 @@ export class IonicAuthorizationRequestHandler extends AuthorizationRequestHandle
 
         let authRequestKey = await this.storageBackend.getItem(authorizationRequestKey(handle))
         let json = await JSON.parse(authRequestKey);
-        
+
         let request = await AuthorizationRequest.fromJson(json);
 
         let response = await this.storageBackend.getItem(AUTHORIZATION_RESPONSE_KEY);
-        let parts = response.split('#');
+        let parts = response.split('?');
 
         if (parts.length !== 2) {
             throw new Error("Invalid auth repsonse string");
@@ -131,8 +131,8 @@ export class IonicAuthorizationRequestHandler extends AuthorizationRequestHandle
             let tasks = new Array<Promise<any>>()
             {
                 this.storageBackend.removeItem(AUTHORIZATION_REQUEST_HANDLE_KEY),
-                this.storageBackend.removeItem(authorizationRequestKey(handle)),
-                this.storageBackend.removeItem(authorizationServiceConfigurationKey(handle))
+                    this.storageBackend.removeItem(authorizationRequestKey(handle)),
+                    this.storageBackend.removeItem(authorizationServiceConfigurationKey(handle))
             };
 
             await Promise.all(tasks);

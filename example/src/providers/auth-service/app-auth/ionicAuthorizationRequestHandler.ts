@@ -11,7 +11,7 @@ import {
     AuthorizationResponse,
     AuthorizationError
 } from "@openid/appauth";
-import { IonicAppBrowserProvider } from '../../auth-service/app-auth/ionicAppBrowser';
+import { IonicAppBrowserProvider } from './ionicAppBrowser';
 
 
 /** key for authorization request. */
@@ -32,7 +32,7 @@ export const AUTHORIZATION_RESPONSE_KEY = "auth_response";
 
 export class IonicAuthorizationRequestHandler extends AuthorizationRequestHandler {
 
-    constructor(  
+    constructor(
         // use the provided storage backend
         // or initialize local storage with the default storage backend which
         // uses window.localStorage
@@ -41,13 +41,13 @@ export class IonicAuthorizationRequestHandler extends AuthorizationRequestHandle
         utils = new BasicQueryStringUtils(),
         public locationLike: LocationLike = window.location,
         generateRandom = cryptoGenerateRandom,
-        ) {
+    ) {
 
         super(utils, generateRandom);
     }
 
     public async performAuthorizationRequest(configuration: AuthorizationServiceConfiguration, request: AuthorizationRequest): Promise<any> {
-       // this.safariViewController.warmUp();
+        // this.safariViewController.warmUp();
 
         let handle = this.generateRandom();
 
@@ -77,11 +77,11 @@ export class IonicAuthorizationRequestHandler extends AuthorizationRequestHandle
 
         let authRequestKey = await this.storageBackend.getItem(authorizationRequestKey(handle))
         let json = await JSON.parse(authRequestKey);
-        
+
         let request = await AuthorizationRequest.fromJson(json);
 
         let response = await this.storageBackend.getItem(AUTHORIZATION_RESPONSE_KEY);
-        let parts = response.split('#');
+        let parts = response.split('?');
 
         if (parts.length !== 2) {
             throw new Error("Invalid auth repsonse string");
@@ -112,8 +112,8 @@ export class IonicAuthorizationRequestHandler extends AuthorizationRequestHandle
             let tasks = new Array<Promise<any>>()
             {
                 this.storageBackend.removeItem(AUTHORIZATION_REQUEST_HANDLE_KEY),
-                this.storageBackend.removeItem(authorizationRequestKey(handle)),
-                this.storageBackend.removeItem(authorizationServiceConfigurationKey(handle))
+                    this.storageBackend.removeItem(authorizationRequestKey(handle)),
+                    this.storageBackend.removeItem(authorizationServiceConfigurationKey(handle))
             };
 
             await Promise.all(tasks);
