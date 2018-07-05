@@ -25,7 +25,7 @@ export class HomePage {
     this.accessToken = this.authService.getAccessTokenJson();
   }
 
-  logout(){
+  logout() {
     this.authService.signout();
   }
 }
